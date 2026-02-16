@@ -1,0 +1,242 @@
+{# Template pour afficher les détails complets d'un ticket #}
+{% extends 'base.html.twig' %}
+
+{% block title %}Ticket #{{ ticket.id }} - {{ ticket.titre }}{% endblock %}
+
+{% block body %}
+<div class="container">
+    {# Fil d'Ariane (breadcrumb) #}
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item">
+                <a href="{{ path('app_ticket_index') }}">
+                    <i class="bi bi-house"></i> Tickets
+                </a>
+            </li>
+            <li class="breadcrumb-item active">Ticket #{{ ticket.id }}</li>
+        </ol>
+    </nav>
+
+    {# En-tête du ticket #}
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-primary text-white">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h3 class="mb-0">
+                        <i class="bi bi-ticket-detailed"></i>
+                        {{ ticket.titre }}
+                    </h3>
+                    <small>Ticket #{{ ticket.id }}</small>
+                </div>
+                <div class="col-md-4 text-md-end">
+                    {# Badges de statut et priorité #}
+                    <span class="{{ ticket.statutBadgeClass }} me-2">
+                        {{ ticket.statut|replace({'_': ' '})|title }}
+                    </span>
+                    <span class="{{ ticket.prioriteBadgeClass }}">
+                        {{ ticket.priorite|upper }}
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <div class="card-body">
+            {# Description du problème #}
+            <div class="mb-4">
+                <h5 class="text-muted mb-3">Description du problème</h5>
+                <p class="lead">{{ ticket.description|nl2br }}</p>
+            </div>
+
+            {# Informations détaillées #}
+            <div class="row">
+                <div class="col-md-6">
+                    <h6 class="text-muted mb-3">Informations générales</h6>
+                    <table class="table table-sm">
+                        <tr>
+                            <th width="40%">Catégorie:</th>
+                            <td>
+                                <span class="badge bg-secondary">
+                                    <i class="bi bi-folder"></i>
+                                    {{ ticket.categorie|title }}
+                                </span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>Date de création:</th>
+                            <td>
+                                <i class="bi bi-calendar"></i>
+                                {{ ticket.dateCreation|date('d/m/Y à H:i') }}
+                            </td>
+                        </tr>
+                        {% if ticket.dateMiseAJour %}
+                        <tr>
+                            <th>Dernière mise à jour:</th>
+                            <td>
+                                <i class="bi bi-clock"></i>
+                                {{ ticket.dateMiseAJour|date('d/m/Y à H:i') }}
+                            </td>
+                        </tr>
+                        {% endif %}
+                        {% if ticket.dateResolution %}
+                        <tr>
+                            <th>Date de résolution:</th>
+                            <td>
+                                <i class="bi bi-check-circle"></i>
+                                {{ ticket.dateResolution|date('d/m/Y à H:i') }}
+                            </td>
+                        </tr>
+                        {% endif %}
+                    </table>
+                </div>
+
+                <div class="col-md-6">
+                    <h6 class="text-muted mb-3">Intervenants</h6>
+                    <table class="table table-sm">
+                        <tr>
+                            <th width="40%">Créé par:</th>
+                            <td>
+                                <i class="bi bi-person-circle"></i>
+                                {{ ticket.createur.nomComplet }}
+                                <br>
+                                <small class="text-muted">{{ ticket.createur.email }}</small>
+                                {% if ticket.createur.departement %}
+                                    <br>
+                                    <small class="text-muted">{{ ticket.createur.departement }}</small>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>Technicien assigné:</th>
+                            <td>
+                                {% if ticket.technicien %}
+                                    <i class="bi bi-wrench-adjustable"></i>
+                                    {{ ticket.technicien.nomComplet }}
+                                    <br>
+                                    <small class="text-muted">{{ ticket.technicien.email }}</small>
+                                {% else %}
+                                    <span class="text-warning">
+                                        <i class="bi bi-exclamation-triangle"></i>
+                                        Non assigné
+                                    </span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        {# Pied de carte avec actions #}
+        <div class="card-footer bg-light">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    {# Bouton retour #}
+                    <a href="{{ path('app_ticket_index') }}" class="btn btn-outline-secondary">
+                        <i class="bi bi-arrow-left"></i> Retour à la liste
+                    </a>
+                </div>
+
+                <div>
+                    {# Actions pour le créateur du ticket #}
+                    {% if ticket.createur == app.user and ticket.statut == 'ouvert' %}
+                        <a href="{{ path('app_ticket_edit', {'id': ticket.id}) }}" class="btn btn-warning">
+                            <i class="bi bi-pencil"></i> Modifier
+                        </a>
+                    {% endif %}
+
+                    {# Actions pour les techniciens #}
+                    {% if is_granted('ROLE_TECHNICIEN') %}
+                        
+                        {# Bouton d'assignation si le ticket n'est pas assigné #}
+                        {% if not ticket.technicien %}
+                            <form method="post" action="{{ path('app_ticket_assign', {'id': ticket.id}) }}" class="d-inline">
+                                <input type="hidden" name="_token" value="{{ csrf_token('assign' ~ ticket.id) }}">
+                                <button class="btn btn-success">
+                                    <i class="bi bi-person-check"></i> M'assigner ce ticket
+                                </button>
+                            </form>
+                        {% endif %}
+
+                        {# Boutons de changement de statut #}
+                        {% if ticket.statut != 'resolu' and ticket.technicien %}
+                            <div class="btn-group">
+                                <button type="button" class="btn btn-primary dropdown-toggle" data-bs-toggle="dropdown">
+                                    <i class="bi bi-gear"></i> Changer le statut
+                                </button>
+                                <ul class="dropdown-menu">
+                                    {% if ticket.statut != 'en_cours' %}
+                                        <li>
+                                            <form method="post" action="{{ path('app_ticket_change_status', {'id': ticket.id, 'nouveauStatut': 'en_cours'}) }}">
+                                                <input type="hidden" name="_token" value="{{ csrf_token('status' ~ ticket.id) }}">
+                                                <button class="dropdown-item">
+                                                    <i class="bi bi-arrow-clockwise text-warning"></i> Passer en cours
+                                                </button>
+                                            </form>
+                                        </li>
+                                    {% endif %}
+                                    <li>
+                                        <form method="post" action="{{ path('app_ticket_change_status', {'id': ticket.id, 'nouveauStatut': 'resolu'}) }}">
+                                            <input type="hidden" name="_token" value="{{ csrf_token('status' ~ ticket.id) }}">
+                                            <button class="dropdown-item">
+                                                <i class="bi bi-check-circle text-success"></i> Marquer comme résolu
+                                            </button>
+                                        </form>
+                                    </li>
+                                </ul>
+                            </div>
+                        {% endif %}
+
+                        {# Bouton pour fermer un ticket résolu #}
+                        {% if ticket.statut == 'resolu' %}
+                            <form method="post" action="{{ path('app_ticket_change_status', {'id': ticket.id, 'nouveauStatut': 'ferme'}) }}" class="d-inline">
+                                <input type="hidden" name="_token" value="{{ csrf_token('status' ~ ticket.id) }}">
+                                <button class="btn btn-secondary">
+                                    <i class="bi bi-archive"></i> Fermer le ticket
+                                </button>
+                            </form>
+                        {% endif %}
+                    {% endif %}
+
+                    {# Bouton de suppression pour les administrateurs #}
+                    {% if is_granted('ROLE_ADMIN') %}
+                        <form method="post" action="{{ path('app_ticket_delete', {'id': ticket.id}) }}" class="d-inline" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer ce ticket ?');">
+                            <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ ticket.id) }}">
+                            <button class="btn btn-danger delete-confirm">
+                                <i class="bi bi-trash"></i> Supprimer
+                            </button>
+                        </form>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {# Historique et commentaires (à implémenter) #}
+    <div class="card shadow-sm">
+        <div class="card-header">
+            <h5 class="mb-0">
+                <i class="bi bi-chat-dots"></i> Historique et commentaires
+            </h5>
+        </div>
+        <div class="card-body">
+            <div class="alert alert-info mb-0">
+                <i class="bi bi-info-circle"></i>
+                La fonctionnalité de commentaires sera bientôt disponible.
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block javascripts %}
+    {{ parent() }}
+    <script>
+        // Animation pour les boutons de formulaire
+        document.querySelectorAll('form button[type="submit"]').forEach(button => {
+            button.closest('form').addEventListener('submit', function() {
+                button.disabled = true;
+                button.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Traitement...';
+            });
+        });
+    </script>
+{% endblock %}

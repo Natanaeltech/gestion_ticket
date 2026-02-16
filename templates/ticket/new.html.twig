@@ -1,0 +1,143 @@
+{# Template pour créer un nouveau ticket #}
+{% extends 'base.html.twig' %}
+
+{% block title %}Créer un ticket{% endblock %}
+
+{% block body %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            {# En-tête de la page #}
+            <div class="mb-4">
+                <h1 class="mb-2">
+                    <i class="bi bi-plus-circle-fill text-primary"></i>
+                    Créer un nouveau ticket
+                </h1>
+                <p class="text-muted">
+                    Remplissez le formulaire ci-dessous pour soumettre votre demande d'assistance.
+                    Notre équipe technique vous répondra dans les plus brefs délais.
+                </p>
+            </div>
+
+            {# Carte contenant le formulaire #}
+            <div class="card shadow-sm">
+                <div class="card-body p-4">
+                    {# Affichage du formulaire Symfony #}
+                    {{ form_start(form) }}
+                    
+                        <div class="mb-4">
+                            {# Champ Titre #}
+                            <div class="mb-3">
+                                {{ form_label(form.titre, null, {'label_attr': {'class': 'form-label fw-bold'}}) }}
+                                {{ form_widget(form.titre) }}
+                                {{ form_help(form.titre) }}
+                                {{ form_errors(form.titre) }}
+                            </div>
+
+                            {# Champ Catégorie #}
+                            <div class="mb-3">
+                                {{ form_label(form.categorie, null, {'label_attr': {'class': 'form-label fw-bold'}}) }}
+                                {{ form_widget(form.categorie) }}
+                                {{ form_help(form.categorie) }}
+                                {{ form_errors(form.categorie) }}
+                            </div>
+
+                            {# Champ Priorité #}
+                            <div class="mb-3">
+                                {{ form_label(form.priorite, null, {'label_attr': {'class': 'form-label fw-bold'}}) }}
+                                {{ form_widget(form.priorite) }}
+                                {{ form_help(form.priorite) }}
+                                {{ form_errors(form.priorite) }}
+                            </div>
+
+                            {# Champ Description #}
+                            <div class="mb-3">
+                                {{ form_label(form.description, null, {'label_attr': {'class': 'form-label fw-bold'}}) }}
+                                {{ form_widget(form.description) }}
+                                {{ form_help(form.description) }}
+                                {{ form_errors(form.description) }}
+                            </div>
+                        </div>
+
+                        {# Zone d'information et conseils #}
+                        <div class="alert alert-info mb-4">
+                            <h6 class="alert-heading">
+                                <i class="bi bi-lightbulb"></i> Conseils pour un traitement rapide
+                            </h6>
+                            <ul class="mb-0 small">
+                                <li>Soyez aussi précis que possible dans votre description</li>
+                                <li>Indiquez les messages d'erreur exacts si vous en avez</li>
+                                <li>Mentionnez les étapes que vous avez déjà tentées</li>
+                                <li>Si le problème est urgent, sélectionnez la priorité "Urgente"</li>
+                            </ul>
+                        </div>
+
+                        {# Boutons d'action #}
+                        <div class="d-flex justify-content-between">
+                            <a href="{{ path('app_ticket_index') }}" class="btn btn-outline-secondary">
+                                <i class="bi bi-arrow-left"></i> Annuler
+                            </a>
+                            
+                            <button type="submit" class="btn btn-primary px-4">
+                                <i class="bi bi-send"></i> Soumettre le ticket
+                            </button>
+                        </div>
+
+                    {{ form_end(form) }}
+                </div>
+            </div>
+
+            {# Informations de contact supplémentaires #}
+            <div class="mt-4 text-center text-muted small">
+                <p>
+                    <i class="bi bi-info-circle"></i>
+                    En cas d'urgence absolue, vous pouvez aussi contacter le support au 
+                    <strong>01 23 45 67 89</strong>
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block javascripts %}
+    {{ parent() }}
+    <script>
+        // Validation côté client pour une meilleure expérience utilisateur
+        document.querySelector('form').addEventListener('submit', function(e) {
+            const titre = document.querySelector('#ticket_titre').value.trim();
+            const description = document.querySelector('#ticket_description').value.trim();
+            
+            if (titre.length < 5) {
+                alert('Le titre doit contenir au moins 5 caractères.');
+                e.preventDefault();
+                return false;
+            }
+            
+            if (description.length < 20) {
+                alert('Merci de fournir une description plus détaillée (au moins 20 caractères).');
+                e.preventDefault();
+                return false;
+            }
+        });
+
+        // Mise à jour dynamique du message d'aide selon la priorité
+        document.querySelector('#ticket_priorite').addEventListener('change', function() {
+            const helpText = this.closest('.mb-3').querySelector('.form-text');
+            
+            switch(this.value) {
+                case 'urgente':
+                    helpText.textContent = '⚠️ Un technicien sera notifié immédiatement';
+                    helpText.className = 'form-text text-danger fw-bold';
+                    break;
+                case 'haute':
+                    helpText.textContent = 'Le ticket sera traité en priorité';
+                    helpText.className = 'form-text text-warning';
+                    break;
+                default:
+                    helpText.textContent = 'Choisissez "Urgente" uniquement si cela bloque complètement votre travail';
+                    helpText.className = 'form-text';
+            }
+        });
+    </script>
+{% endblock %}

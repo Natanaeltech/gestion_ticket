@@ -1,0 +1,195 @@
+{# Template pour modifier un ticket existant #}
+{% extends 'base.html.twig' %}
+
+{% block title %}Modifier le ticket #{{ ticket.id }}{% endblock %}
+
+{% block body %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            {# Fil d'Ariane #}
+            <nav aria-label="breadcrumb" class="mb-4">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item">
+                        <a href="{{ path('app_ticket_index') }}">Tickets</a>
+                    </li>
+                    <li class="breadcrumb-item">
+                        <a href="{{ path('app_ticket_show', {'id': ticket.id}) }}">
+                            Ticket #{{ ticket.id }}
+                        </a>
+                    </li>
+                    <li class="breadcrumb-item active">Modifier</li>
+                </ol>
+            </nav>
+
+            {# En-tête #}
+            <div class="mb-4">
+                <h1 class="mb-2">
+                    <i class="bi bi-pencil-square text-warning"></i>
+                    Modifier le ticket #{{ ticket.id }}
+                </h1>
+                <p class="text-muted">
+                    Vous pouvez modifier les informations de votre ticket ci-dessous.
+                </p>
+            </div>
+
+            {# Avertissement si le ticket n'est plus modifiable #}
+            {% if ticket.statut != 'ouvert' and not is_granted('ROLE_TECHNICIEN') %}
+                <div class="alert alert-warning">
+                    <i class="bi bi-exclamation-triangle"></i>
+                    <strong>Attention :</strong> Ce ticket a le statut "{{ ticket.statut }}".
+                    Les modifications peuvent être limitées.
+                </div>
+            {% endif %}
+
+            {# Carte avec le formulaire #}
+            <div class="card shadow-sm">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="mb-0">
+                        <i class="bi bi-file-earmark-text"></i>
+                        Informations du ticket
+                    </h5>
+                </div>
+
+                <div class="card-body p-4">
+                    {{ form_start(form) }}
+                    
+                        {# Champ Titre #}
+                        <div class="mb-3">
+                            {{ form_label(form.titre, null, {'label_attr': {'class': 'form-label fw-bold'}}) }}
+                            {{ form_widget(form.titre) }}
+                            {{ form_help(form.titre) }}
+                            {{ form_errors(form.titre) }}
+                        </div>
+
+                        {# Champ Catégorie #}
+                        <div class="mb-3">
+                            {{ form_label(form.categorie, null, {'label_attr': {'class': 'form-label fw-bold'}}) }}
+                            {{ form_widget(form.categorie) }}
+                            {{ form_errors(form.categorie) }}
+                        </div>
+
+                        {# Champ Priorité #}
+                        <div class="mb-3">
+                            {{ form_label(form.priorite, null, {'label_attr': {'class': 'form-label fw-bold'}}) }}
+                            {{ form_widget(form.priorite) }}
+                            {{ form_help(form.priorite) }}
+                            {{ form_errors(form.priorite) }}
+                        </div>
+
+                        {# Champ Description #}
+                        <div class="mb-4">
+                            {{ form_label(form.description, null, {'label_attr': {'class': 'form-label fw-bold'}}) }}
+                            {{ form_widget(form.description) }}
+                            {{ form_help(form.description) }}
+                            {{ form_errors(form.description) }}
+                        </div>
+
+                        {# Informations sur la dernière modification #}
+                        <div class="alert alert-light border">
+                            <small class="text-muted">
+                                <i class="bi bi-info-circle"></i>
+                                <strong>Dernière mise à jour :</strong>
+                                {% if ticket.dateMiseAJour %}
+                                    {{ ticket.dateMiseAJour|date('d/m/Y à H:i') }}
+                                {% else %}
+                                    Jamais modifié
+                                {% endif %}
+                            </small>
+                        </div>
+
+                        {# Boutons d'action #}
+                        <div class="d-flex justify-content-between">
+                            <a href="{{ path('app_ticket_show', {'id': ticket.id}) }}" class="btn btn-outline-secondary">
+                                <i class="bi bi-x-circle"></i> Annuler
+                            </a>
+                            
+                            <button type="submit" class="btn btn-warning px-4">
+                                <i class="bi bi-save"></i> Enregistrer les modifications
+                            </button>
+                        </div>
+
+                    {{ form_end(form) }}
+                </div>
+            </div>
+
+            {# Informations complémentaires #}
+            <div class="mt-3">
+                <div class="card">
+                    <div class="card-body">
+                        <h6 class="card-title">
+                            <i class="bi bi-lightbulb text-warning"></i>
+                            Informations importantes
+                        </h6>
+                        <ul class="small mb-0">
+                            <li>Les modifications sont sauvegardées avec un horodatage</li>
+                            <li>Le technicien assigné sera notifié de vos modifications</li>
+                            <li>Si vous changez la priorité, cela peut affecter le délai de traitement</li>
+                            {% if ticket.statut != 'ouvert' %}
+                                <li class="text-warning">
+                                    <strong>Note :</strong> Ce ticket a déjà été pris en charge.
+                                    Contactez le technicien assigné pour des modifications importantes.
+                                </li>
+                            {% endif %}
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block javascripts %}
+    {{ parent() }}
+    <script>
+        // Validation avant soumission
+        document.querySelector('form').addEventListener('submit', function(e) {
+            const titre = document.querySelector('#ticket_titre').value.trim();
+            const description = document.querySelector('#ticket_description').value.trim();
+            
+            if (titre.length < 5) {
+                alert('Le titre doit contenir au moins 5 caractères.');
+                e.preventDefault();
+                return false;
+            }
+            
+            if (description.length < 20) {
+                alert('La description doit être plus détaillée (au moins 20 caractères).');
+                e.preventDefault();
+                return false;
+            }
+
+            // Confirmation si changement de priorité à "urgente"
+            const priorite = document.querySelector('#ticket_priorite').value;
+            const prioriteInitiale = '{{ ticket.priorite }}';
+            
+            if (priorite === 'urgente' && prioriteInitiale !== 'urgente') {
+                if (!confirm('Vous allez marquer ce ticket comme URGENT. Un technicien sera notifié immédiatement. Confirmez-vous ?')) {
+                    e.preventDefault();
+                    return false;
+                }
+            }
+        });
+
+        // Compteur de caractères pour la description
+        const descriptionField = document.querySelector('#ticket_description');
+        const counterDiv = document.createElement('div');
+        counterDiv.className = 'small text-muted mt-1';
+        descriptionField.parentNode.appendChild(counterDiv);
+
+        function updateCounter() {
+            const count = descriptionField.value.length;
+            counterDiv.textContent = `${count} caractères`;
+            
+            if (count < 20) {
+                counterDiv.className = 'small text-danger mt-1';
+            } else {
+                counterDiv.className = 'small text-success mt-1';
+            }
+        }
+
+        descriptionField.addEventListener('input', updateCounter);
+        updateCounter(); // Initialisation
+    </script>
+{% endblock %}
